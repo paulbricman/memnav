@@ -17,25 +17,31 @@ class MemNav:
         self.pair_encoder = CrossEncoder('cross-encoder/ms-marco-TinyBERT-L-6')
 
         # Load list of entries
-        self.entries = [open(self.root_dir + '/' + file).read() for file in sorted(os.listdir(root_dir))]
+        self.entries = [open(self.root_dir + '/' + file).read()
+                        for file in sorted(os.listdir(root_dir))]
 
         # Tokenize entries into sentences
         self.entries = [sent_tokenize(entry.strip()) for entry in self.entries]
 
         # Merge each 3 consecutive sentences into one passage
-        self.entries = list(chain(*[[' '.join(entry[start_idx:min(start_idx + 3, len(entry))]) for start_idx in range(0, len(entry), 3)] for entry in self.entries]))
+        self.entries = list(chain(*[[' '.join(entry[start_idx:min(start_idx + 3, len(entry))])
+                                     for start_idx in range(0, len(entry), 3)] for entry in self.entries]))
 
         # Pre-compute passage embeddings
-        self.passage_embeddings = self.text_encoder.encode(self.entries, show_progress_bar=True)
+        self.passage_embeddings = self.text_encoder.encode(
+            self.entries, show_progress_bar=True)
 
     def retrieval(self, query):
         """Utility for retrieving passages most relevant to a given query."""
         # First pass, find passages most similar to query
-        question_embedding = self.text_encoder.encode(query, convert_to_tensor=True)
-        hits = util.semantic_search(question_embedding, self.passage_embeddings, top_k=100)[0]
+        question_embedding = self.text_encoder.encode(
+            query, convert_to_tensor=True)
+        hits = util.semantic_search(
+            question_embedding, self.passage_embeddings, top_k=100)[0]
 
         # Second pass, re-rank passages more thoroughly
-        cross_scores = self.pair_encoder.predict([[query, self.entries[hit['corpus_id']]] for hit in hits])
+        cross_scores = self.pair_encoder.predict(
+            [[query, self.entries[hit['corpus_id']]] for hit in hits])
 
         for idx in range(len(cross_scores)):
             hits[idx]['cross-score'] = cross_scores[idx]
@@ -47,7 +53,7 @@ class MemNav:
         for hit in hits[:5]:
             if hit['cross-score'] > 1e-3:
                 results += [self.entries[hit['corpus_id']]]
-        
+
         return results
 
     def search(self, query):
