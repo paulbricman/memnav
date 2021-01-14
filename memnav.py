@@ -14,4 +14,4 @@ class MemNav:
         return self.qa(question, self.context)['answer']
 
     def sum(self, file):
-        return self.summarize(open(self.root_dir + '/' + file).read(), 130, 30, False)
+        return self.summarize(open(self.root_dir + '/' + file).read()[:1024], 130, 30, False)['summary_text']
